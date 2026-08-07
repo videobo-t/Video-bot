@@ -1,0 +1,41 @@
+name: Video Uretimi
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Video konusu (bos birakirsan topics.txt kullanilir)'
+        required: false
+        default: ''
+
+jobs:
+  produce-videos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Kodu indir
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: FFmpeg kur
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Kutuphaneleri kur
+        run: pip install -r requirements.txt
+
+      - name: Turkce ses modelini indir
+        run: python3 -m piper.download_voices tr_TR-dfki-medium
+
+      - name: Videolari uret ve Telegrama gonder
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TOPIC: ${{ github.event.inputs.topic }}
+        run: python run_daily.py
